@@ -1,0 +1,7 @@
+# goal request
+geographic_msgs/GeoPoint geopoint
+---
+# compeletion
+bool reached_waypoint
+---
+float32 distance_remaining
