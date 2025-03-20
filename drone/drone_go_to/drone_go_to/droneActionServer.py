@@ -29,6 +29,8 @@ class DroneActionServer(Node):
         # TODO: Get this as parameter
         self.robot_name = "Quadrotor"
         self.target_topic = f"{self.robot_name}/{DroneTopics.UNITY_TARGET}"
+        # TODO: Discuss with Ozer
+        # FIX: Probably should not use ground truth but rather estimate
         self.target_frame = f"{self.robot_name}/{DroneLinks.BASE_LINK}_gt"
         self.logger = self.get_logger()
         self.logger.info(f"Publishing outputs to unity at {self.target_topic}")
@@ -43,13 +45,14 @@ class DroneActionServer(Node):
 
     def transform_goal(self, utm_val: utm.UTMPoint) -> Optional[Pose]:
         # TODO: Discuss with Ozer
-        # FIX: If latest is appropriate
+        # FIX: If latest is appropriate but but since this message isn't stamped should make it stamped (although its global)
         try:
             t = self._tf_buffer.lookup_transform(self.target_frame, 'utm', Time(seconds=0), timeout=Duration(seconds=5))
         except TransformException as e:
             self.logger.error({e})
             return None
         goal = Pose()
+        # based on ReadMe
         goal.position.x = utm_val.easting
         goal.position.y = utm_val.northing
         goal.position.z = utm_val.altitude
