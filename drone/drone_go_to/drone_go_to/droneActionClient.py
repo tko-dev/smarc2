@@ -20,14 +20,15 @@ class DroneActionClient(Node):
         goal_msg.geopoint = GeoPoint()
         self.logger.info(f"Sending empty geopoint {GeoPoint()}")
 
-        server_ready = self._client.wait_for_server(timeout_sec=1)
+        server_ready = self._client.wait_for_server(timeout_sec=5)
         self._send_goal_future = self._client.send_goal_async(goal_msg, feedback_callback=self._feedback_callback)
         if server_ready:
             pass
         else:
             self.logger.error("Action server does not exist")
-    def _feedback_callback(self, feedback_msg: GoToDrone.Feedback):
-        pass
+    def _feedback_callback(self, feedback_msg):
+        self.logger.info(f"Received feedback {feedback_msg}")
+        self.logger.info(f"Received feedback {feedback_msg.feedback.distance_remaining}")
 
 
 def main(args=None):
