@@ -2,6 +2,8 @@ from typing import Optional
 
 import rclpy
 
+import numpy as np
+
 from rclpy.action import ActionServer
 from rclpy.time import Duration, Time
 from rclpy.action.server import ServerGoalHandle
@@ -17,13 +19,14 @@ from drone_go_to_interfaces.action import GoToDrone
 from drone_msgs.msg import Links as DroneLinks
 from drone_msgs.msg import Topics as DroneTopics
 
+
 class DroneActionServer(Node):
     def __init__(self):
-        super().__init__("drone_action_server") 
+        super().__init__("drone_action_server")
         self._server = ActionServer(
             self,
             GoToDrone,
-            'drone_go_to',
+            "drone_go_to",
             self._execute_callback,
         )
         # TODO: Get this as parameter
@@ -41,13 +44,15 @@ class DroneActionServer(Node):
         self._publisher = self.create_publisher(Pose, self.target_topic, 5)
 
         self._tf_buffer = Buffer()
-        self._tf_listener = TransformListener(self._tf_buffer, self, spin_thread = True)
+        self._tf_listener = TransformListener(self._tf_buffer, self, spin_thread=True)
 
     def transform_goal(self, utm_val: utm.UTMPoint) -> Optional[Pose]:
         # TODO: Discuss with Ozer
         # FIX: If latest is appropriate but but since this message isn't stamped should make it stamped (although its global)
         try:
-            t = self._tf_buffer.lookup_transform(self.target_frame, 'utm', Time(seconds=0), timeout=Duration(seconds=5))
+            t = self._tf_buffer.lookup_transform(
+                self.target_frame, "utm", Time(seconds=0), timeout=Duration(seconds=5)
+            )
         except TransformException as e:
             self.logger.error({e})
             return None
@@ -58,33 +63,50 @@ class DroneActionServer(Node):
         goal.position.z = utm_val.altitude
         return do_transform_pose(goal, t)
 
-        pass
+    def compute_distance(self, utm_val: utm.UTMPoint):
+        position = self.transform_goal(utm_val)
+        if position is not None:
+            delta = np.sqrt(
+                (position.position.x) ** 2
+                + (position.position.y) ** 2
+                + (position.position.z) ** 2
+            )
+            return delta
+        else:
+            return -1.0
+
     def _execute_callback(self, goal_handle: ServerGoalHandle):
         self.logger.info("Executing callback")
         self.logger.info(f"{goal_handle.request}")
         utm_val: utm.UTMPoint = utm.fromMsg(goal_handle.request.geopoint)
-        goal_base_link = self.transform_goal(utm_val)
-        if goal_base_link is None:
+        self.goal_base_link = self.transform_goal(utm_val)
+        if self.goal_base_link is None:
             goal_handle.abort()
         else:
-            self.logger.info(f"Publishing to {self.target_topic}, with position {goal_base_link}")
-            self._publisher.publish(goal_base_link)
+            self.logger.info(
+                f"Publishing to {self.target_topic}, with position {self.goal_base_link}"
+            )
+            self._publisher.publish(self.goal_base_link)
         feedback_msg = GoToDrone.Feedback()
-        for i in range(5):
-            import time
-            feedback_msg.distance_remaining = float(i)
+
+        distance = self.compute_distance(utm_val)
+        while distance > 0.1:
+            feedback_msg.distance_remaining = distance
             goal_handle.publish_feedback(feedback_msg)
             self.logger.info("Sending feedback")
+            self.logger.info(f"Distance to target {distance}")
+            distance = self.compute_distance(utm_val)
 
-            time.sleep(1)
         result_msg = GoToDrone.Result()
         goal_handle.succeed()
         return result_msg
+
 
 def main(args=None):
     rclpy.init(args=args)
     action_client = DroneActionServer()
     rclpy.spin(action_client)
+
 
 if __name__ == "__main__":
     main()

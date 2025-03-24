@@ -19,6 +19,9 @@ class DroneActionClient(Node):
         goal_msg = GoToDrone.Goal()
         goal_msg.geopoint = GeoPoint()
         self.logger.info(f"Sending empty geopoint {GeoPoint()}")
+        # https://awsm-tools.com/utm-to-lat-long?form%5Beasting%5D=652698.125&form%5Bnorthing%5D=6524250.5&form%5Bzone%5D=33&form%5Bband%5D=V&form%5Bellipsoid%5D=WGS+84
+        goal_msg.geopoint.latitude = 58.83099123563405
+        goal_msg.geopoint.longitude = 17.645308490070622
 
         server_ready = self._client.wait_for_server(timeout_sec=5)
         self._send_goal_future = self._client.send_goal_async(goal_msg, feedback_callback=self._feedback_callback)
