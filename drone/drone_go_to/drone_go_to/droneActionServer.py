@@ -7,10 +7,8 @@ import numpy as np
 from rclpy.action import ActionServer
 from rclpy.time import Duration, Time
 from rclpy.action.server import ServerGoalHandle
-from tf2_ros import TransformBroadcaster
 from tf2_geometry_msgs import do_transform_pose
 from rclpy.node import Node
-from geographic_msgs.msg import GeoPoint
 from geometry_msgs.msg import Pose
 from geodesy import utm
 from tf2_ros import TransformListener, Buffer, TransformException
@@ -29,18 +27,16 @@ class DroneActionServer(Node):
             "drone_go_to",
             self._execute_callback,
         )
-        # TODO: Get this as parameter
+        # TODO: Get this as parameter in a real version
         self.robot_name = "Quadrotor"
         self.target_topic = f"{self.robot_name}/{DroneTopics.UNITY_TARGET}"
         # TODO: Discuss with Ozer
-        # FIX: Probably should not use ground truth but rather estimate
+        # FIX: Probably should not use ground truth but rather use estimate position
         self.target_frame = f"{self.robot_name}/{DroneLinks.BASE_LINK}_gt"
         self.logger = self.get_logger()
         self.logger.info(f"Publishing outputs to unity at {self.target_topic}")
 
-        # INFO:
-        # publisher topic takes a pose that is the drone's reference frame, so need to get proper transform
-        # robot.name/BASELINK
+        # NOTE: Publisher to target topic that allows for teleportation of the target
         self._publisher = self.create_publisher(Pose, self.target_topic, 5)
 
         self._tf_buffer = Buffer()
@@ -48,16 +44,20 @@ class DroneActionServer(Node):
 
     def transform_goal(self, utm_val: utm.UTMPoint) -> Optional[Pose]:
         # TODO: Discuss with Ozer
-        # FIX: If latest is appropriate but but since this message isn't stamped should make it stamped (although its global)
+        # Is pulling the most recent time stamp appropriate here:
+        # Rationale: yes because the goal request is not stamped and we want the latest transform
         try:
             t = self._tf_buffer.lookup_transform(
-                self.target_frame, "utm", Time(seconds=0), timeout=Duration(seconds=5)
+                self.target_frame, "utm", Time(seconds=0), timeout=Duration(seconds=2)
             )
         except TransformException as e:
             self.logger.error({e})
+            # TODO: Discuss with Ozer
+            # I dislike making this an optional return wonder if there is a better way to handle transform error
+            # basically it puts this on the caller to check if transform worked
             return None
         goal = Pose()
-        # based on ReadMe
+        # based on ReadMe in repository
         goal.position.x = utm_val.easting
         goal.position.y = utm_val.northing
         goal.position.z = utm_val.altitude
@@ -73,6 +73,7 @@ class DroneActionServer(Node):
             )
             return delta
         else:
+            # C: style error code
             return -1.0
 
     def _execute_callback(self, goal_handle: ServerGoalHandle):

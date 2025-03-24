@@ -30,7 +30,6 @@ class DroneActionClient(Node):
         else:
             self.logger.error("Action server does not exist")
     def _feedback_callback(self, feedback_msg):
-        self.logger.info(f"Received feedback {feedback_msg}")
         self.logger.info(f"Received feedback {feedback_msg.feedback.distance_remaining}")
 
 
