@@ -5,16 +5,18 @@ from rclpy.node import Node
 from drone_go_to_interfaces.action import GoToDrone
 from geographic_msgs.msg import GeoPoint
 
+
 class DroneActionClient(Node):
     def __init__(self):
-        super().__init__('drone_action_client')
+        super().__init__("drone_action_client")
         self._client = ActionClient(
             self,
             GoToDrone,
-            'drone_go_to',
+            "drone_go_to",
         )
         self.logger = self.get_logger()
         self.logger.info("Initializing drone action client node")
+
     def send_goal(self):
         goal_msg = GoToDrone.Goal()
         goal_msg.geopoint = GeoPoint()
@@ -24,13 +26,32 @@ class DroneActionClient(Node):
         goal_msg.geopoint.longitude = 17.645308490070622
 
         server_ready = self._client.wait_for_server(timeout_sec=5)
-        self._send_goal_future = self._client.send_goal_async(goal_msg, feedback_callback=self._feedback_callback)
+        self._send_goal_future = self._client.send_goal_async(
+            goal_msg, feedback_callback=self._feedback_callback
+        )
         if server_ready:
             pass
         else:
             self.logger.error("Action server does not exist")
+        self._send_goal_future.add_done_callback(self.goal_response_callback)
+    def goal_response_callback(self, future):
+        goal_handle = future.result()
+
+        if not goal_handle.accepted:
+            self.logger.info("Goal was rejected")
+            return
+        self.logger.info("Goal accepted")
+        self._get_result_future = goal_handle.get_result_async()
+        self._get_result_future.add_done_callback(self._result_callback)
+
+
     def _feedback_callback(self, feedback_msg):
-        self.logger.info(f"Received feedback {feedback_msg.feedback.distance_remaining}")
+        self.logger.info(
+            f"Received feedback {feedback_msg.feedback.distance_remaining}"
+        )
+    def _result_callback(self, future):
+        result = future.result().result
+        self.logger().info(f"Waypoint reached boolean: {result}")
 
 
 def main(args=None):
@@ -38,6 +59,7 @@ def main(args=None):
     action_client = DroneActionClient()
     action_client.send_goal()
     rclpy.spin(action_client)
+
 
 if __name__ == "__main__":
     main()

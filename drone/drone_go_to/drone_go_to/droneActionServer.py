@@ -90,6 +90,8 @@ class DroneActionServer(Node):
             self._publisher.publish(self.goal_base_link)
         feedback_msg = GoToDrone.Feedback()
 
+        result_msg = GoToDrone.Result()
+        result_msg.reached_waypoint = False
         distance = self.compute_distance(utm_val)
         while distance > 0.1:
             feedback_msg.distance_remaining = distance
@@ -99,6 +101,7 @@ class DroneActionServer(Node):
             distance = self.compute_distance(utm_val)
 
         result_msg = GoToDrone.Result()
+        result_msg.reached_waypoint = True
         goal_handle.succeed()
         return result_msg
 
