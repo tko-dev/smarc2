@@ -45,7 +45,7 @@ class DroneActionServer(Node):
     def transform_goal(self, utm_val: utm.UTMPoint) -> Optional[Pose]:
         # TODO: Discuss with Ozer
         # Is pulling the most recent time stamp appropriate here:
-        # Rationale: yes because the goal request is not stamped and we want the latest transform
+        # Rationale in my head: yes because the goal request is not stamped and we want the latest transform
         try:
             t = self._tf_buffer.lookup_transform(
                 self.target_frame, "utm", Time(seconds=0), timeout=Duration(seconds=2)
@@ -54,7 +54,7 @@ class DroneActionServer(Node):
             self.logger.error({e})
             # TODO: Discuss with Ozer
             # I dislike making this an optional return wonder if there is a better way to handle transform error
-            # basically it puts this on the caller to check if transform worked
+            # basically I am putting the work on the caller to check for none everywhere
             return None
         goal = Pose()
         # based on ReadMe in repository

@@ -7,6 +7,11 @@ from rclpy.action.server import ServerGoalHandle
 
 
 class ActionServerBase(Node, metaclass=ABCMeta):
+    # TODO: Discuss with Ozer
+    # - No generic types for message so can't provide nice type hints
+    # - Found type hints for ServerGoalHandle which is very useful
+    # - Is wrapping some of these painful `.` stuff in properties acceptable to you (see actionResultMsg)
+    # I didn't write further than this as I wanted to just provide a rough sketch of what I was thinking
     def __init__(self, node_name: str, action_name: str, action_type, **kwargs):
         super().__init__(node_name)
         self.action_type = action_type
