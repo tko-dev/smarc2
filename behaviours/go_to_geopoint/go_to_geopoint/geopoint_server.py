@@ -326,8 +326,8 @@ class GeopointServer(SMARCActionServer):
         """
         goal_request = goal_request.goal
         geo_setpoint = self._json_ops.decode(goal_request, ActS.GOAL)
-        self.logger.info(f"Received UTM point at {geo_setpoint}")
         pose_stamped = self.convert_to_utm(geo_setpoint)
+        self.logger.info(f"Received UTM point at {self._str_posestamp(pose_stamped)}")
         try:
             dist = self.compute_distance(pose_stamped)
         except TransformException as err:
