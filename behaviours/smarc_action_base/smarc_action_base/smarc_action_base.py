@@ -395,6 +395,8 @@ class SMARCActionClient(abc.ABC):
         result: ActionResult = raw_result.result
         status: GoalStatus = raw_result.status
         response = self.result_callback(result, status)
+
+        # TODO: (Tim): Location to edit and update response to cancellation callback
         valid_response = (
             response is ActionClientState.DONE or response is ActionClientState.ERROR
         )

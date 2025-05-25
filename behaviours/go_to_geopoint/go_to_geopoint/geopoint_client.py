@@ -59,6 +59,7 @@ class GeopointClient(SMARCActionClient):
     def result_callback(self, result: ActionResult, status: GoalStatus):
         """Result when a goal is sent to the server."""
         self.logger.info(f"Waypoint reached boolean: {result}")
+        # TODO: (Tim) Location to update cancellation logic for BT
         if result.success:
             return self.get_goal_success()
         else:
@@ -109,7 +110,7 @@ def main(args=None):
     node = Node(node_name)
     action_type = ActionType(BaseAction)
     setpoint = GeopointClient(node, "go_to_setpoint", action_type)
-    # setpoint._test_geopoint()
+    setpoint._test_geopoint()
     rclpy.spin(node)
 
 
